@@ -33,9 +33,9 @@ resource "aws_s3_bucket_public_access_block" "terraform_state" {
 
 # DynamoDB table for state locking
 resource "aws_dynamodb_table" "terraform_locks" {
-  name           = "terraform-locks"
-  billing_mode   = "PAY_PER_REQUEST"
-  hash_key       = "LockID"
+  name         = "terraform-locks"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "LockID"
 
   attribute {
     name = "LockID"
@@ -110,3 +110,27 @@ resource "aws_iam_role_policy" "lambda_sns_publish" {
     ]
   })
 }
+
+# EventBridge rule to schedule the Lambda function
+resource "aws_cloudwatch_event_rule" "football_alerts_schedule" {
+  name                = "football-alerts-schedule"
+  description         = "Triggers the football-alerts Lambda every hour"
+  schedule_expression = "cron(0 8 * * ? *)" # change this as needed
+}
+
+# EventBridge target to schedule the Lambda function
+resource "aws_cloudwatch_event_target" "football_alerts_target" {
+  rule      = aws_cloudwatch_event_rule.football_alerts_schedule.name
+  target_id = "football-alerts-lambda"
+  arn       = aws_lambda_function.football_alerts.arn
+}
+
+# Lambda permission to allow EventBridge to invoke the Lambda function
+resource "aws_lambda_permission" "allow_eventbridge" {
+  statement_id  = "AllowExecutionFromEventBridge"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.football_alerts.function_name
+  principal     = "events.amazonaws.com"
+  source_arn    = aws_cloudwatch_event_rule.football_alerts_schedule.arn
+}
+
