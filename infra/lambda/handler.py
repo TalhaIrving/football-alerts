@@ -11,7 +11,7 @@ sns = boto3.client("sns")
 def lambda_handler(event, context):
     topic_arn = os.environ["TOPIC_ARN"]
 
-    message = "Test football alert: Blues/Aston Villa home game scheduled."
+    message = "Football alert: Blues/Aston Villa home game scheduled."
     
     response = sns.publish(
         TopicArn=topic_arn,
