@@ -10,5 +10,5 @@ variable "topic_name" {
 variable "aws_profile" {
   description = "AWS CLI profile to use (leave empty in CI/CD)"
   type        = string
-  default     = ""
+  default     = "talhairving@gmail.com"
 }
