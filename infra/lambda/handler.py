@@ -5,7 +5,7 @@ import os
 
 
 # SNS function 
-sns = boto3.client("sns")
+sns = boto3.client("sns", region_name=os.getenv("AWS_REGION", "eu-west-2"))
 
 # SNS function
 def lambda_handler(event, context):
