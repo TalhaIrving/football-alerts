@@ -54,7 +54,7 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: eu-west-2
-          AWS_PROFILE: default  # 👈 This is key — tells Terraform not to look for your local profile
+          TF_VAR_aws_profile: ""  # 👈 This is key — tells Terraform not to look for your local profile
         run: |
           terraform fmt -check
           terraform validate
@@ -65,7 +65,7 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: eu-west-2
-          AWS_PROFILE: default  # 👈 This is key — tells Terraform not to look for your local profile
+          TF_VAR_aws_profile: ""  # 👈 This is key — tells Terraform not to look for your local profile
         run: terraform plan -input=false
 
       # Optional automatic deploy on main
@@ -77,3 +77,4 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: eu-west-2
+          TF_VAR_aws_profile: ""  # 👈 This is key — tells Terraform not to look for your local profile
