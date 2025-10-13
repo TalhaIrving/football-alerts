@@ -35,3 +35,12 @@ override.tf.json
 # Ignore CLI configuration files
 .terraformrc
 terraform.rc
+
+# Lambda build artifacts
+lambda.zip
+
+# Python environment
+venv/
+.venv/
+__pycache__/
+.pytest_cache/
