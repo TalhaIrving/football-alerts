@@ -1,0 +1,65 @@
+name: CI/CD – Football Alerts
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-test-deploy:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write  # needed for OIDC auth to AWS
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        working-directory: infra/lambda
+        run: |
+          python -m venv .venv
+          source .venv/bin/activate
+          pip install -r requirements.txt
+          pip install pytest boto3 moto
+
+      - name: Run tests
+        working-directory: infra/lambda
+        run: |
+          source .venv/bin/activate
+          pytest -v
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.0
+
+      - name: Terraform Init
+        working-directory: infra
+        run: terraform init -input=false
+
+      - name: Terraform Format & Validate
+        working-directory: infra
+        run: |
+          terraform fmt -check
+          terraform validate
+
+      - name: Terraform Plan
+        working-directory: infra
+        run: terraform plan -input=false
+
+      # Optional automatic deploy on main
+      - name: Terraform Apply (main only)
+        if: github.ref == 'refs/heads/main'
+        working-directory: infra
+        run: terraform apply -auto-approve -input=false
+        env:
+          AWS_REGION: eu-west-2
