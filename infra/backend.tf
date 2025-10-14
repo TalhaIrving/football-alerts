@@ -5,7 +5,6 @@ terraform {
     region         = "eu-west-2"
     dynamodb_table = "terraform-locks"
     encrypt        = true
-    profile        = "talhairving@gmail.com"
   }
 }
 
