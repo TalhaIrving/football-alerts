@@ -51,7 +51,7 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: eu-west-2
           TF_VAR_aws_profile: ""  # 👈 This is key — tells Terraform not to look for your local profile
-        run: terraform init -input=false
+        run: terraform init -input=false -reconfigure
 
       - name: Terraform Format & Validate
         working-directory: infra
@@ -61,7 +61,7 @@ jobs:
           AWS_REGION: eu-west-2
           TF_VAR_aws_profile: ""  # 👈 This is key — tells Terraform not to look for your local profile
         run: |
-          terraform fmt -check -input=false
+          terraform fmt -check
           terraform validate
 
       - name: Terraform Plan
