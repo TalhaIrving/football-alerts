@@ -121,6 +121,7 @@ resource "aws_iam_role_policy" "lambda_sns_publish" {
   })
 }
 
+
 # EventBridge rule to schedule the Lambda function
 resource "aws_cloudwatch_event_rule" "football_alerts_schedule" {
   name                = "football-alerts-schedule"
