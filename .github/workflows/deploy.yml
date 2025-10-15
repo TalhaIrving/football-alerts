@@ -9,20 +9,20 @@ on:
 jobs:
   build-test-deploy:
     runs-on: ubuntu-latest
-
+    
     permissions:
       contents: read
       id-token: write  # needed for OIDC auth to AWS
-
+    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
+      
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-
+      
       - name: Install dependencies
         working-directory: infra/lambda
         run: |
@@ -30,10 +30,7 @@ jobs:
           source .venv/bin/activate
           pip install -r requirements.txt
           pip install pytest boto3 moto
-
-      # The previous 'Verify Lambda Package Size' step is REMOVED
-      # because the ZIP file does not exist at that point.
-
+      
       - name: Run tests
         working-directory: infra/lambda
         env:
@@ -41,12 +38,12 @@ jobs:
         run: |
           source .venv/bin/activate
           pytest -v
-
+      
       - name: Set up Terraform
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.9.0
-
+      
       - name: Terraform Init
         working-directory: infra
         env:
@@ -55,7 +52,7 @@ jobs:
           AWS_REGION: eu-west-2
           TF_VAR_aws_profile: ""  # Fix for looking up local profile
         run: terraform init -input=false -reconfigure
-
+      
       - name: Terraform Format, Validate, and Size Check
         working-directory: infra
         env:
@@ -67,35 +64,41 @@ jobs:
           # 0. Install unzip for the size check (may not be on the runner by default)
           sudo apt-get update && sudo apt-get install -y unzip
           
-          # 1. Run fmt/validate. This FORCES the Terraform data.archive_file
-          # resource to execute and create the lambda.zip file.
+          # 1. Run fmt/validate.
           terraform fmt -check
           terraform validate
           
-          # 2. Path to the ZIP file (now guaranteed to exist in infra/)
+          # 2. FORCE ZIP FILE CREATION: Run a temporary plan to ensure
+          # the data.archive_file resource executes and creates lambda.zip.
+          # The -lock=false flag prevents locking issues.
+          terraform plan -destroy -out=/tmp/out.plan -lock=false
+          
+          # 3. Path to the ZIP file (now guaranteed to exist in infra/)
           ZIP_FILE="./lambda.zip" 
           
-          # 3. Check Zipped Size (MB)
+          # 4. Check Zipped Size (MB)
           ZIPPED_MB=$(du -m $ZIP_FILE | awk '{print $1}')
           echo "Lambda Package Zipped Size: ${ZIPPED_MB} MB"
           
-          # 4. Check Unzipped Size (The Critical 250MB Check)
+          # 5. Check Unzipped Size (The Critical 250MB Check)
           mkdir -p /tmp/lambda_check
           unzip -q $ZIP_FILE -d /tmp/lambda_check
           
           UNZIPPED_MB=$(du -m /tmp/lambda_check | awk '{print $1}')
           echo "Lambda Package Unzipped Size: ${UNZIPPED_MB} MB"
           
-          # 5. Enforce the AWS Limit (250MB). This is the error we are looking for.
+          # 6. Enforce the AWS Limit (250MB). This is the error we are looking for.
           MAX_UNZIPPED_MB=250
           if [ ${UNZIPPED_MB} -ge ${MAX_UNZIPPED_MB} ]; then
             echo "::error::ERROR: Lambda deployment package unzipped size (${UNZIPPED_MB} MB) is at or above the 250 MB AWS limit. You must use Lambda Layers or Docker containers."
             exit 1
           fi
           
-          # 6. Clean up
+          # 7. Clean up
           rm -rf /tmp/lambda_check
-
+          rm -f /tmp/out.plan
+          # Note: The ZIP file is left in place for the subsequent 'terraform plan' step to use.
+      
       - name: Terraform Plan
         working-directory: infra
         env:
@@ -104,7 +107,7 @@ jobs:
           AWS_REGION: eu-west-2
           TF_VAR_aws_profile: ""
         run: terraform plan -input=false
-
+      
       # Optional automatic deploy on main
       - name: Terraform Apply (main only)
         if: github.ref == 'refs/heads/main'
