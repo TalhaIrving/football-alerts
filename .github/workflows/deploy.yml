@@ -31,38 +31,8 @@ jobs:
           pip install -r requirements.txt
           pip install pytest boto3 moto
 
-      # ... (after your 'Install dependencies' step)
-
-      - name: Verify Lambda Package Size
-        working-directory: infra
-        run: |
-          # 1. Determine the path and name of the final ZIP artifact (adjust this path if needed)
-          ZIP_FILE="../lambda.zip" 
-          
-          # Assuming your data.archive_file creates the zip in the infra folder.
-          # If the zip is created in infra/lambda/, adjust the path: ZIP_FILE="lambda/lambda.zip" 
-
-          # 2. Check Zipped Size (MB)
-          ZIPPED_MB=$(du -m $ZIP_FILE | awk '{print $1}')
-          echo "Lambda Package Zipped Size: ${ZIPPED_MB} MB"
-          
-          # 3. Check Unzipped Size (The Critical Check)
-          # We'll create a temporary directory, unzip the contents, and measure it.
-          mkdir -p /tmp/lambda_check
-          unzip -q $ZIP_FILE -d /tmp/lambda_check
-          
-          UNZIPPED_MB=$(du -m /tmp/lambda_check | awk '{print $1}')
-          echo "Lambda Package Unzipped Size: ${UNZIPPED_MB} MB"
-          
-          # 4. Enforce the AWS Limit (250MB) - Fail the build if too large
-          MAX_UNZIPPED_MB=250
-          if [ ${UNZIPPED_MB} -ge ${MAX_UNZIPPED_MB} ]; then
-            echo "::error::ERROR: Lambda deployment package unzipped size (${UNZIPPED_MB} MB) is at or above the 250 MB AWS limit. You must use Lambda Layers or Docker containers."
-            exit 1
-          fi
-          
-          # 5. Clean up
-          rm -rf /tmp/lambda_check
+      # The previous 'Verify Lambda Package Size' step is REMOVED
+      # because the ZIP file does not exist at that point.
 
       - name: Run tests
         working-directory: infra/lambda
@@ -83,19 +53,48 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: eu-west-2
-          TF_VAR_aws_profile: ""  # 👈 This is key — tells Terraform not to look for your local profile
+          TF_VAR_aws_profile: ""  # Fix for looking up local profile
         run: terraform init -input=false -reconfigure
 
-      - name: Terraform Format & Validate
+      - name: Terraform Format, Validate, and Size Check
         working-directory: infra
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: eu-west-2
-          TF_VAR_aws_profile: ""  # 👈 This is key — tells Terraform not to look for your local profile
+          TF_VAR_aws_profile: ""
         run: |
+          # 0. Install unzip for the size check (may not be on the runner by default)
+          sudo apt-get update && sudo apt-get install -y unzip
+          
+          # 1. Run fmt/validate. This FORCES the Terraform data.archive_file
+          # resource to execute and create the lambda.zip file.
           terraform fmt -check
           terraform validate
+          
+          # 2. Path to the ZIP file (now guaranteed to exist in infra/)
+          ZIP_FILE="./lambda.zip" 
+          
+          # 3. Check Zipped Size (MB)
+          ZIPPED_MB=$(du -m $ZIP_FILE | awk '{print $1}')
+          echo "Lambda Package Zipped Size: ${ZIPPED_MB} MB"
+          
+          # 4. Check Unzipped Size (The Critical 250MB Check)
+          mkdir -p /tmp/lambda_check
+          unzip -q $ZIP_FILE -d /tmp/lambda_check
+          
+          UNZIPPED_MB=$(du -m /tmp/lambda_check | awk '{print $1}')
+          echo "Lambda Package Unzipped Size: ${UNZIPPED_MB} MB"
+          
+          # 5. Enforce the AWS Limit (250MB). This is the error we are looking for.
+          MAX_UNZIPPED_MB=250
+          if [ ${UNZIPPED_MB} -ge ${MAX_UNZIPPED_MB} ]; then
+            echo "::error::ERROR: Lambda deployment package unzipped size (${UNZIPPED_MB} MB) is at or above the 250 MB AWS limit. You must use Lambda Layers or Docker containers."
+            exit 1
+          fi
+          
+          # 6. Clean up
+          rm -rf /tmp/lambda_check
 
       - name: Terraform Plan
         working-directory: infra
@@ -103,7 +102,7 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: eu-west-2
-          TF_VAR_aws_profile: ""  # 👈 This is key — tells Terraform not to look for your local profile
+          TF_VAR_aws_profile: ""
         run: terraform plan -input=false
 
       # Optional automatic deploy on main
@@ -115,4 +114,4 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: eu-west-2
-          TF_VAR_aws_profile: ""  # 👈 This is key — tells Terraform not to look for your local profile
+          TF_VAR_aws_profile: ""
