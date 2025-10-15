@@ -31,6 +31,39 @@ jobs:
           pip install -r requirements.txt
           pip install pytest boto3 moto
 
+      # ... (after your 'Install dependencies' step)
+
+      - name: Verify Lambda Package Size
+        working-directory: infra
+        run: |
+          # 1. Determine the path and name of the final ZIP artifact (adjust this path if needed)
+          ZIP_FILE="../lambda.zip" 
+          
+          # Assuming your data.archive_file creates the zip in the infra folder.
+          # If the zip is created in infra/lambda/, adjust the path: ZIP_FILE="lambda/lambda.zip" 
+
+          # 2. Check Zipped Size (MB)
+          ZIPPED_MB=$(du -m $ZIP_FILE | awk '{print $1}')
+          echo "Lambda Package Zipped Size: ${ZIPPED_MB} MB"
+          
+          # 3. Check Unzipped Size (The Critical Check)
+          # We'll create a temporary directory, unzip the contents, and measure it.
+          mkdir -p /tmp/lambda_check
+          unzip -q $ZIP_FILE -d /tmp/lambda_check
+          
+          UNZIPPED_MB=$(du -m /tmp/lambda_check | awk '{print $1}')
+          echo "Lambda Package Unzipped Size: ${UNZIPPED_MB} MB"
+          
+          # 4. Enforce the AWS Limit (250MB) - Fail the build if too large
+          MAX_UNZIPPED_MB=250
+          if [ ${UNZIPPED_MB} -ge ${MAX_UNZIPPED_MB} ]; then
+            echo "::error::ERROR: Lambda deployment package unzipped size (${UNZIPPED_MB} MB) is at or above the 250 MB AWS limit. You must use Lambda Layers or Docker containers."
+            exit 1
+          fi
+          
+          # 5. Clean up
+          rm -rf /tmp/lambda_check
+
       - name: Run tests
         working-directory: infra/lambda
         env:
