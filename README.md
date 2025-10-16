@@ -1,10 +1,10 @@
-? Football Alerts – Match-Day Traffic Notifications
+⚽ Football Alerts – Match-Day Traffic Notifications
 
 This project provisions an automated, serverless system to deliver SMS alerts for upcoming football matches involving specific teams (currently Birmingham City and Aston Villa). The goal is to provide timely notifications to help users plan around heavy match-day traffic in the Birmingham area.
 
 The entire infrastructure is defined and deployed using Terraform and managed via a GitHub Actions CI/CD pipeline.
 
-? Features
+✨ Features
 
 Automated Scheduling: Uses AWS EventBridge (CloudWatch Events) to trigger the Lambda function on a daily schedule.
 
@@ -16,7 +16,7 @@ Infrastructure as Code (IaC): Full environment managed by Terraform with remote 
 
 Continuous Deployment: Automated linting, testing, and infrastructure deployment via GitHub Actions.
 
-??? Architecture Overview
+🏗️ Architecture Overview
 
 The system follows a simple, scheduled serverless workflow:
 
@@ -30,7 +30,7 @@ AWS SNS: Publishes the final alert message to all subscribed endpoints (your mob
 
 Terraform: Defines the Lambda function, SNS topic, IAM permissions, and deployment logic.
 
-?? Technologies Used
+📦 Technologies Used
 
 Cloud Infrastructure: AWS Lambda, AWS SNS, AWS EventBridge, AWS IAM, AWS S3, AWS DynamoDB.
 
@@ -42,7 +42,7 @@ Automation: GitHub Actions
 
 Testing: pytest (local unit testing)
 
-?? CI/CD Pipeline (GitHub Actions)
+⚙️ CI/CD Pipeline (GitHub Actions)
 
 The CI/CD pipeline (.github/workflows/deploy.yml) ensures automated, tested, and standardized deployment of the infrastructure and code.
 
@@ -66,7 +66,7 @@ Format & Validation: Runs terraform fmt -recursive (to enforce HCL style) and te
 
 Deployment (Apply): The terraform apply command executes only on the main branch, provisioning or updating all AWS resources.
 
-?? Setup & Manual Testing
+🚀 Setup & Manual Testing
 
 This guide assumes you have the AWS CLI and Terraform installed locally.
 
@@ -155,7 +155,7 @@ aws lambda invoke \
 # }
 
 
-?? Next Steps (Day 5 Onward)
+🎯 Next Steps (Day 5 Onward)
 
 Add EventBridge rule definition to schedule Lambda runs automatically.
 
@@ -165,10 +165,10 @@ Implement CloudWatch monitoring and alarms (Day 5 task).
 
 Implement DynamoDB logic for alert deduplication (Day 6 task).
 
-?? Author
+✍️ Author
 
 Talha Irving
 
-?? License
+📄 License
 
-This project is licensed under the MIT License.
+This project is licensed under the MIT License
