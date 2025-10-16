@@ -33,9 +33,9 @@ resource "aws_s3_bucket_public_access_block" "terraform_state" {
 
 # DynamoDB table for state locking
 resource "aws_dynamodb_table" "terraform_locks" {
-  name             = "terraform-locks"
-  billing_mode     = "PAY_PER_REQUEST"
-  hash_key         = "LockID"
+  name           = "terraform-locks"
+  billing_mode   = "PAY_PER_REQUEST"
+  hash_key       = "LockID"
 
   attribute {
     name = "LockID"
@@ -74,8 +74,41 @@ resource "aws_iam_role" "lambda_exec" {
 
 # IAM role policy attachment for Lambda logging
 resource "aws_iam_role_policy_attachment" "lambda_logging" {
-  role      = aws_iam_role.lambda_exec.name
+  role       = aws_iam_role.lambda_exec.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+}
+
+# ----------------------------------------------------
+# ⚽ S3 Object and Lambda Function (Updated for S3 Deployment)
+# ----------------------------------------------------
+
+# 1. Upload the zip file to S3
+resource "aws_s3_object" "lambda_deployment_zip" {
+  bucket = aws_s3_bucket.terraform_state.id
+  
+  # Use a key that includes the source code hash to force replacement on code change
+  key    = "lambda-deployments/${data.archive_file.lambda_zip.output_file_md5}.zip"
+  source = data.archive_file.lambda_zip.output_path
+  etag   = filemd5(data.archive_file.lambda_zip.output_path)
+}
+
+# 2. Define the Lambda function, pointing to the S3 object
+resource "aws_lambda_function" "football_alerts" {
+  function_name    = "football-alerts-lambda"
+  role             = aws_iam_role.lambda_exec.arn
+  handler          = "handler.lambda_handler"
+  runtime          = "python3.12"
+
+  # Deployment via S3 (to bypass the 50MB direct API upload limit)
+  s3_bucket        = aws_s3_object.lambda_deployment_zip.bucket
+  s3_key           = aws_s3_object.lambda_deployment_zip.key
+  source_code_hash = data.archive_file.lambda_zip.output_base64sha256
+
+  environment {
+    variables = {
+      TOPIC_ARN = aws_sns_topic.football_alerts.arn
+    }
+  }
 }
 
 # Archive the Lambda function
@@ -85,38 +118,6 @@ data "archive_file" "lambda_zip" {
   source_dir  = "${path.module}/lambda"
   output_path = "${path.module}/lambda.zip"
 }
-
-# --- NEW RESOURCE: Upload the lambda deployment package to S3 ---
-resource "aws_s3_object" "lambda_deployment_zip" {
-  bucket = aws_s3_bucket.terraform_state.id
-  # Use the source code hash in the key to ensure uniqueness and force updates
-  key    = "lambda-deployments/football-alerts-${data.archive_file.lambda_zip.output_base64sha256}.zip"
-  source = data.archive_file.lambda_zip.output_path
-  etag   = filemd5(data.archive_file.lambda_zip.output_path)
-}
-
-# Lambda function
-resource "aws_lambda_function" "football_alerts" {
-  function_name    = "football-alerts-lambda"
-  role             = aws_iam_role.lambda_exec.arn
-  handler          = "handler.lambda_handler"
-  runtime          = "python3.12"
-  
-  # --- MODIFIED: Deploy from S3 to bypass the 50MB direct upload limit ---
-  s3_bucket        = aws_s3_object.lambda_deployment_zip.bucket
-  s3_key           = aws_s3_object.lambda_deployment_zip.key
-  
-  # The source_code_hash is still required to detect code changes
-  source_code_hash = data.archive_file.lambda_zip.output_base64sha256
-
-
-  environment {
-    variables = {
-      TOPIC_ARN = aws_sns_topic.football_alerts.arn
-    }
-  }
-}
-
 
 # IAM role policy for Lambda to publish to SNS
 resource "aws_iam_role_policy" "lambda_sns_publish" {
@@ -135,6 +136,38 @@ resource "aws_iam_role_policy" "lambda_sns_publish" {
   })
 }
 
+# ----------------------------------------------------
+# ☁️ CloudWatch Monitoring and Alarming (Day 5 Task)
+# ----------------------------------------------------
+
+# 1. Define the CloudWatch Log Group for Lambda
+# Sets log retention to 14 days and ensures proper naming
+resource "aws_cloudwatch_log_group" "lambda_log_group" {
+  name              = "/aws/lambda/${aws_lambda_function.football_alerts.function_name}"
+  retention_in_days = 14
+}
+
+# 2. Metric Alarm: Alert if Lambda throws any errors
+resource "aws_cloudwatch_metric_alarm" "lambda_error_alarm" {
+  alarm_name          = "FootballAlerts-Lambda-Errors"
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  evaluation_periods  = 1
+  metric_name         = "Errors"
+  namespace           = "AWS/Lambda"
+  period              = 60 # 60 seconds
+  statistic           = "Sum"
+  threshold           = 1 # Alarm if there is 1 or more errors in 1 minute
+  
+  dimensions = {
+    FunctionName = aws_lambda_function.football_alerts.function_name
+  }
+
+  alarm_description = "Alarm triggered if the Football Alerts Lambda function reports any execution errors."
+  
+  # Notify the existing SNS topic
+  alarm_actions = [aws_sns_topic.football_alerts.arn]
+  ok_actions    = [aws_sns_topic.football_alerts.arn]
+}
 
 # EventBridge rule to schedule the Lambda function
 resource "aws_cloudwatch_event_rule" "football_alerts_schedule" {
