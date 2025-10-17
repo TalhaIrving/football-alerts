@@ -86,10 +86,13 @@ resource "aws_iam_role_policy_attachment" "lambda_logging" {
 resource "aws_s3_object" "lambda_deployment_zip" {
   bucket = aws_s3_bucket.terraform_state.id
   
-  # Use a key that includes the source code hash to force replacement on code change
-  key    = "lambda-deployments/${data.archive_file.lambda_zip.output_file_md5}.zip"
+  # ✅ FIX: Changed output_file_md5 to output_md5 for the key
+  # The S3 key changes whenever the zip content changes
+  key    = "lambda-deployments/${data.archive_file.lambda_zip.output_md5}.zip"
   source = data.archive_file.lambda_zip.output_path
-  etag   = filemd5(data.archive_file.lambda_zip.output_path)
+  
+  # ETag check to force replacement if content changes
+  etag   = data.archive_file.lambda_zip.output_md5
 }
 
 # 2. Define the Lambda function, pointing to the S3 object
@@ -102,13 +105,20 @@ resource "aws_lambda_function" "football_alerts" {
   # Deployment via S3 (to bypass the 50MB direct API upload limit)
   s3_bucket        = aws_s3_object.lambda_deployment_zip.bucket
   s3_key           = aws_s3_object.lambda_deployment_zip.key
-  source_code_hash = data.archive_file.lambda_zip.output_base64sha256
+  
+  # ✅ FIX: Changed source_code_hash attribute to use output_sha256
+  source_code_hash = data.archive_file.lambda_zip.output_sha256
 
   environment {
     variables = {
       TOPIC_ARN = aws_sns_topic.football_alerts.arn
     }
   }
+  
+  # Added dependency for log group creation
+  depends_on = [
+    aws_cloudwatch_log_group.lambda_log_group
+  ]
 }
 
 # Archive the Lambda function
