@@ -80,7 +80,7 @@ resource "aws_iam_role_policy_attachment" "lambda_logging" {
 }
 
 # ----------------------------------------------------
-# ⚽ S3 Object and Lambda Function (Updated for S3 Deployment)
+#  S3 Object and Lambda Function (Updated for S3 Deployment)
 # ----------------------------------------------------
 
 # 1. Upload the zip file to S3
@@ -115,7 +115,7 @@ resource "aws_lambda_function" "football_alerts" {
     }
   }
   
-  # ❌ CIRCLE BROKEN: Removed depends_on block 
+ 
 }
 
 # Archive the Lambda function
@@ -144,7 +144,7 @@ resource "aws_iam_role_policy" "lambda_sns_publish" {
 }
 
 # ----------------------------------------------------
-# ☁️ CloudWatch Monitoring and Alarming (Day 5 Task)
+#  CloudWatch Monitoring and Alarming (Day 5 Task)
 # ----------------------------------------------------
 
 # 1. Define the CloudWatch Log Group for Lambda
