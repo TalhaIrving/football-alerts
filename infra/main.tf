@@ -74,6 +74,7 @@ resource "aws_iam_role" "lambda_exec" {
 
 # IAM role policy attachment for Lambda logging
 resource "aws_iam_role_policy_attachment" "lambda_logging" {
+  # Ensures the role name is used correctly
   role       = aws_iam_role.lambda_exec.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
@@ -86,8 +87,7 @@ resource "aws_iam_role_policy_attachment" "lambda_logging" {
 resource "aws_s3_object" "lambda_deployment_zip" {
   bucket = aws_s3_bucket.terraform_state.id
   
-  # ✅ FIX: Changed output_file_md5 to output_md5 for the key
-  # The S3 key changes whenever the zip content changes
+  # FIX: Using output_md5 for the key
   key    = "lambda-deployments/${data.archive_file.lambda_zip.output_md5}.zip"
   source = data.archive_file.lambda_zip.output_path
   
@@ -106,7 +106,7 @@ resource "aws_lambda_function" "football_alerts" {
   s3_bucket        = aws_s3_object.lambda_deployment_zip.bucket
   s3_key           = aws_s3_object.lambda_deployment_zip.key
   
-  # ✅ FIX: Changed source_code_hash attribute to use output_sha256
+  # FIX: Using output_sha256 for source code hash
   source_code_hash = data.archive_file.lambda_zip.output_sha256
 
   environment {
@@ -115,10 +115,7 @@ resource "aws_lambda_function" "football_alerts" {
     }
   }
   
-  # Added dependency for log group creation
-  depends_on = [
-    aws_cloudwatch_log_group.lambda_log_group
-  ]
+  # ❌ CIRCLE BROKEN: Removed depends_on block 
 }
 
 # Archive the Lambda function
