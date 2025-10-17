@@ -52,6 +52,21 @@ jobs:
           AWS_REGION: eu-west-2
           TF_VAR_aws_profile: ""
         run: terraform init -input=false -reconfigure
+        
+      # ⚠️ TEMPORARY STEP TO FIX ResourceAlreadyExistsException ⚠️
+      # This step imports the existing log group created by the Lambda runtime
+      # The target resource name is "aws_cloudwatch_log_group.lambda_log_group"
+      # The ID in AWS is the log group name: "/aws/lambda/football-alerts-lambda"
+      - name: "TEMPORARY: Import Existing Log Group"
+        working-directory: infra
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: eu-west-2
+          TF_VAR_aws_profile: ""
+        run: |
+          ## The '|| true' ensures the workflow doesn't fail if the resource is already in state or doesn't exist
+          terraform import aws_cloudwatch_log_group.lambda_log_group /aws/lambda/football-alerts-lambda || true
 
       - name: Terraform Format, Validate, and Plan
         working-directory: infra
@@ -61,14 +76,42 @@ jobs:
           AWS_REGION: eu-west-2
           TF_VAR_aws_profile: ""
         run: |
-          # 1. Format the code to ensure canonical HCL (fixes the exit code 3 error)
+          # 1. Install unzip dependency for size checks
+          sudo apt-get update && sudo apt-get install -y unzip
+          
+          # 2. Run terraform commands (forces zip creation)
           terraform fmt -recursive
-          
-          # 2. Validate the configuration
           terraform validate
+          terraform plan -destroy -out=out.plan
+          rm out.plan
           
-          # 3. Create the plan (this also forces the data.archive_file to run)
-          terraform plan -input=false
+          # 3. Path to the ZIP file (created by the plan command above)
+          ZIP_FILE="./lambda.zip" 
+          
+          # 4. Check Unzipped Size (The Critical 250MB Check)
+          mkdir -p /tmp/lambda_check
+          unzip -q $ZIP_FILE -d /tmp/lambda_check
+          
+          UNZIPPED_MB=$(du -m /tmp/lambda_check | awk '{print $1}')
+          
+          # 5. Enforce the AWS Limit (250MB) - Fail the build if too large
+          MAX_UNZIPPED_MB=250
+          if [ ${UNZIPPED_MB} -ge ${MAX_UNZIPPED_MB} ]; then
+            echo "::error::ERROR: Lambda deployment package unzipped size (${UNZIPPED_MB} MB) is at or above the 250 MB AWS limit. You must use Lambda Layers or Docker containers."
+            exit 1
+          fi
+          
+          # 6. Clean up
+          rm -rf /tmp/lambda_check
+          
+      - name: Terraform Plan
+        working-directory: infra
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: eu-west-2
+          TF_VAR_aws_profile: ""
+        run: terraform plan -input=false
 
       # Optional automatic deploy on main
       - name: Terraform Apply (main only)
