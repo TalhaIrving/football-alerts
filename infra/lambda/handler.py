@@ -17,7 +17,7 @@ TIMEZONE = "Europe/London"
 # Clients
 SNS_CLIENT = boto3.client("sns", region_name=os.getenv("AWS_REGION", "eu-west-2"))
 
-def fetch_and_filter_fixtures(api_key, topic_arn):
+def fetch_and_filter_fixtures(api_key):
     """Fetches fixtures for today and filters for relevant matches."""
     
     # Get today's date in YYYY-MM-DD format as required by the 'date' parameter
