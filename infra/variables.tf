@@ -12,3 +12,9 @@ variable "aws_profile" {
   type        = string
   default     = ""
 }
+
+variable "api_key" {
+  description = "API key for the external football data service."
+  type        = string
+  sensitive   = true # Ensures the value is masked in logs
+}

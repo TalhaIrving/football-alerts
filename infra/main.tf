@@ -52,7 +52,7 @@ resource "aws_sns_topic" "football_alerts" {
 resource "aws_sns_topic_subscription" "sms_subscription" {
   topic_arn = aws_sns_topic.football_alerts.arn
   protocol  = "sms"
-  endpoint  = "+447761999587" # 👈 replace with your mobile number (E.164 format)
+  endpoint  = "+447761999587" # replace with your mobile number (E.164 format)
 }
 
 # Lambda function IAM role
@@ -80,14 +80,14 @@ resource "aws_iam_role_policy_attachment" "lambda_logging" {
 }
 
 # ----------------------------------------------------
-#  S3 Object and Lambda Function (Updated for S3 Deployment)
+# S3 Object and Lambda Function (Updated for S3 Deployment)
 # ----------------------------------------------------
 
 # 1. Upload the zip file to S3
 resource "aws_s3_object" "lambda_deployment_zip" {
   bucket = aws_s3_bucket.terraform_state.id
   
-  # FIX: Using output_md5 for the key
+  # FIX: Using output_md5 for the key (Lambda needs a unique file name to update)
   key    = "lambda-deployments/${data.archive_file.lambda_zip.output_md5}.zip"
   source = data.archive_file.lambda_zip.output_path
   
@@ -106,16 +106,18 @@ resource "aws_lambda_function" "football_alerts" {
   s3_bucket        = aws_s3_object.lambda_deployment_zip.bucket
   s3_key           = aws_s3_object.lambda_deployment_zip.key
   
-  # FIX: Using output_sha256 for source code hash
+  # FIX: Using output_sha256 for source code hash (forces code update on change)
   source_code_hash = data.archive_file.lambda_zip.output_sha256
 
   environment {
     variables = {
       TOPIC_ARN = aws_sns_topic.football_alerts.arn
+      # NEW: Securely injects the API key from GitHub Secrets
+      API_KEY   = var.api_key
     }
   }
   
- 
+  # FIX: CIRCLE BROKEN: Removed depends_on block 
 }
 
 # Archive the Lambda function
@@ -144,7 +146,7 @@ resource "aws_iam_role_policy" "lambda_sns_publish" {
 }
 
 # ----------------------------------------------------
-#  CloudWatch Monitoring and Alarming (Day 5 Task)
+# CloudWatch Monitoring and Alarming (Day 5 Task)
 # ----------------------------------------------------
 
 # 1. Define the CloudWatch Log Group for Lambda
@@ -180,7 +182,7 @@ resource "aws_cloudwatch_metric_alarm" "lambda_error_alarm" {
 resource "aws_cloudwatch_event_rule" "football_alerts_schedule" {
   name                = "football-alerts-schedule"
   description         = "Triggers the football-alerts Lambda every hour"
-  schedule_expression = "cron(0 8 * * ? *)" # change this as needed
+  schedule_expression = "cron(0 8 * * ? *)" # Runs at 8:00 AM UTC every day
 }
 
 # EventBridge target to schedule the Lambda function
