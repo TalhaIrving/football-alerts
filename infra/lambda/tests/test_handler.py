@@ -10,7 +10,8 @@ def test_lambda_handler_success(monkeypatch):
     mock_SNS_CLIENT = type("MockSNSClient", (), {"publish": mock_publish})()
     monkeypatch.setattr(handler, "SNS_CLIENT", mock_SNS_CLIENT, raising=True)
     
-# ADD THIS LINE: Mocks the API key for the handler to pass its initial check
+    # Ensure required environment variable is present for the handler
+    monkeypatch.setenv("TOPIC_ARN", "arn:aws:sns:eu-west-1:123456789012:dummy-topic")
     monkeypatch.setenv("API_KEY", "dummy-api-key")
 
     event = {"test": "football-alerts"}
