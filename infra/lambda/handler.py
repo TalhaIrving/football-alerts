@@ -9,8 +9,6 @@ import requests # for external API calls
 # Base URL confirmed from your request samples
 API_BASE_URL = "https://v3.football.api-sports.io/fixtures"
 API_HOST = "v3.football.api-sports.io" # <--- NEW: Host header value
-API_KEY = os.environ.get("API_KEY")
-TOPIC_ARN = os.environ.get("TOPIC_ARN")
 
 # We use hardcoded IDs for Aston Villa (33) and Birmingham City (36)
 TARGET_TEAM_IDS = [33, 36] 
@@ -19,7 +17,7 @@ TIMEZONE = "Europe/London"
 # Clients
 SNS_CLIENT = boto3.client("sns", region_name=os.getenv("AWS_REGION", "eu-west-2"))
 
-def fetch_and_filter_fixtures():
+def fetch_and_filter_fixtures(api_key, topic_arn):
     """Fetches fixtures for today and filters for relevant matches."""
     
     # Get today's date in YYYY-MM-DD format as required by the 'date' parameter
@@ -97,21 +95,27 @@ def fetch_and_filter_fixtures():
 
 def lambda_handler(event, context):
     """Entry point: fetches fixtures and sends SNS alerts for home games."""
-    if not API_KEY or not TOPIC_ARN:
+    
+    # 1. Load configuration safely inside the handler function
+    api_key = os.environ.get("API_KEY")
+    topic_arn = os.environ.get("TOPIC_ARN") # Renamed to topic_arn (lowercase) for local use
+    
+    if not api_key or not topic_arn:
         print("ERROR: Missing API_KEY or TOPIC_ARN environment variable.")
         return {"statusCode": 500, "body": "Configuration error."}
 
-    alerts = fetch_and_filter_fixtures()
+    # 2. Call the fetch function, passing the securely loaded key
+    alerts = fetch_and_filter_fixtures(api_key)
     
     if not alerts:
         print("SUCCESS: No relevant home matches scheduled today.")
         return {"statusCode": 200, "body": "No relevant home matches scheduled today."}
 
-    # Send an SMS for each match found
+    # 3. Send SMS alerts
     published_ids = []
     for message in alerts:
         response = SNS_CLIENT.publish(
-            TopicArn=TOPIC_ARN,
+            TopicArn=topic_arn, # Use the locally loaded variable
             Message=message,
             Subject="Football Traffic Alert",
             MessageAttributes={
