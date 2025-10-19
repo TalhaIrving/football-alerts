@@ -1,6 +1,7 @@
 import json # for JSON data
 import os # for environment variables
-from datetime import datetime, timezone # for date and time
+from datetime import datetime
+import pytz # for timezone
 import boto3 # for SNS publishing
 import requests # for external API calls
 
@@ -21,7 +22,8 @@ def fetch_and_filter_fixtures(api_key):
     """Fetches fixtures for today and filters for relevant matches."""
     
     # Get today's date in YYYY-MM-DD format as required by the 'date' parameter
-    today_date = datetime.now(timezone.utc).astimezone(timezone(TIMEZONE)).strftime("%Y-%m-%d")
+    local_tz = pytz.timezone(TIMEZONE)
+    today_date = datetime.now(pytz.utc).astimezone(local_tz).strftime("%Y-%m-%d")
     
     # API-Football V3 requires BOTH the key and the host in the headers
     headers = { 
@@ -79,7 +81,7 @@ def fetch_and_filter_fixtures(api_key):
                 # Convert the ISO string to a datetime object, localize, and format
                 # The .replace('Z', '+00:00') handles the API's ISO format reliably
                 match_dt = datetime.fromisoformat(match_datetime_str.replace('Z', '+00:00'))
-                kickoff_time = match_dt.astimezone(timezone(TIMEZONE)).strftime("%I:%M %p")
+                kickoff_time = match_dt.astimezone(local_tz).strftime("%I:%M %p")
             except Exception:
                 kickoff_time = "Time TBD"
 
