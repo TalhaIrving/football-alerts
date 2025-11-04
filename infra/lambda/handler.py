@@ -27,7 +27,7 @@ def fetch_and_filter_fixtures(api_key):
     
     # API-Football V3 requires BOTH the key and the host in the headers
     headers = { 
-        "x-rapidapi-key": API_KEY,      # <--- KEY
+        "x-rapidapi-key": api_key,      # <--- KEY
         "x-rapidapi-host": API_HOST     # <--- NEW: HOST
     }
     
@@ -99,11 +99,11 @@ def lambda_handler(event, context):
     """Entry point: fetches fixtures and sends SNS alerts for home games."""
     
     # 1. Load configuration safely inside the handler function
-    api_key = os.environ.get("API_KEY")
+    api_key = os.environ.get("api_key")
     topic_arn = os.environ.get("TOPIC_ARN") # Renamed to topic_arn (lowercase) for local use
     
     if not api_key or not topic_arn:
-        print("ERROR: Missing API_KEY or TOPIC_ARN environment variable.")
+        print("ERROR: Missing api_key or TOPIC_ARN environment variable.")
         return {"statusCode": 500, "body": "Configuration error."}
 
     # 2. Call the fetch function, passing the securely loaded key
