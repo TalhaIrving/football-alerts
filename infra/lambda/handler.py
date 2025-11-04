@@ -65,7 +65,7 @@ def fetch_and_filter_fixtures(api_key):
         home_id = teams.get("home", {}).get("id")
         away_id = teams.get("away", {}).get("id")
 
-        if home_id in TARGET_TEAM_IDS or away_id in TARGET_TEAM_IDS:
+        if home_id in TARGET_TEAM_IDS or away_id in TARGET_TEAM_IDS: # <--- NEW: Filtering logic
             
             # --- Filtering Logic ---
             # NOTE: We alert on ANY match involving target teams today, 
