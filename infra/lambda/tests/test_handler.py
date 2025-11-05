@@ -1,6 +1,7 @@
 import requests # NEW: Required for mocking
 from datetime import datetime
 import pytz # NEW: May be needed by the handler logic running in the test
+import handler # NEW: Import the actual handler module for testing
 
 # Mock data simulating a successful API-Football response
 MOCK_API_RESPONSE = {
