@@ -53,20 +53,20 @@ jobs:
           TF_VAR_aws_profile: ""
         run: terraform init -input=false -reconfigure
         
-      # ⚠️ TEMPORARY STEP TO FIX ResourceAlreadyExistsException ⚠️
-      # This step imports the existing log group created by the Lambda runtime
-      # The target resource name is "aws_cloudwatch_log_group.lambda_log_group"
-      # The ID in AWS is the log group name: "/aws/lambda/football-alerts-lambda"
-      - name: "TEMPORARY: Import Existing Log Group"
-        working-directory: infra
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: eu-west-2
-          TF_VAR_aws_profile: ""
-        run: |
-          ## The '|| true' ensures the workflow doesn't fail if the resource is already in state or doesn't exist
-          terraform import aws_cloudwatch_log_group.lambda_log_group /aws/lambda/football-alerts-lambda || true
+      # # ⚠️ TEMPORARY STEP TO FIX ResourceAlreadyExistsException ⚠️
+      # # This step imports the existing log group created by the Lambda runtime
+      # # The target resource name is "aws_cloudwatch_log_group.lambda_log_group"
+      # # The ID in AWS is the log group name: "/aws/lambda/football-alerts-lambda"
+      # - name: "TEMPORARY: Import Existing Log Group"
+      #   working-directory: infra
+      #   env:
+      #     AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      #     AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      #     AWS_REGION: eu-west-2
+      #     TF_VAR_aws_profile: ""
+      #   run: |
+      #     ## The '|| true' ensures the workflow doesn't fail if the resource is already in state or doesn't exist
+      #     terraform import aws_cloudwatch_log_group.lambda_log_group /aws/lambda/football-alerts-lambda || true
 
       - name: Terraform Format, Validate, and Plan
         working-directory: infra
