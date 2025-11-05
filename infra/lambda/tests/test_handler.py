@@ -1,69 +1,77 @@
-import requests # NEW: Required for mocking
+import handler
+import requests # Required for mocking requests
+import boto3 # Required for mocking boto3
+import pytz # Required by handler logic
+import json
 from datetime import datetime
-import pytz # NEW: May be needed by the handler logic running in the test
-import handler # NEW: Import the actual handler module for testing
+import pytest
 
-# Mock data simulating a successful API-Football response
+# --- 1. Mock Data for API ---
+# This simulates a successful API-Football response with one relevant match
 MOCK_API_RESPONSE = {
     "response": [
         {
             "fixture": {
-                "id": 12345,
-                "timezone": "UTC",
-                "date": "2025-11-05T19:00:00+00:00", 
+                "id": 12345, "timezone": "UTC", "date": "2025-11-05T19:00:00+00:00",
                 "venue": {"id": 558, "name": "Villa Park", "city": "Birmingham"},
                 "status": {"long": "Not Started", "short": "NS"}
             },
-            "league": {"id": 39, "name": "Premier League", "country": "England"},
             "teams": {
                 "home": {"id": 33, "name": "Aston Villa", "winner": None}, # Target team ID 33
                 "away": {"id": 40, "name": "Liverpool", "winner": None}
-            },
-            "goals": {"home": None, "away": None},
-            "score": {"halftime": None, "fulltime": None}
+            }
         }
     ]
 }
 
-# NEW: Mock class to replace requests.get()
+# --- 2. Mock Class for Requests ---
+# This class will intercept the requests.get() call
 class MockRequests:
     @staticmethod
     def get(url, headers, params):
         class MockResponse:
-            def json(self):
-                return MOCK_API_RESPONSE
-            def raise_for_status(self):
-                return None # Simulates a successful 200 HTTP response
+            def json(self): return MOCK_API_RESPONSE
+            def raise_for_status(self): return None
         return MockResponse()
 
+# --- 3. Mock Class for SNS Client ---
+# This class will intercept the boto3.client("sns", ...) call
+class MockSNSClient:
+    def __init__(self, *args, **kwargs):
+        # We don't need the args, but we accept them
+        print("MockSNSClient initialized")
+    
+    def publish(self, **kwargs):
+        # Check that the TopicArn is being passed correctly (optional)
+        assert "arn:aws:sns:eu-west-1:123456789012:dummy-topic" in kwargs.get("TopicArn")
+        # Return the expected response
+        return {"MessageId": "12345-mock-id"}
+
+# --- 4. The Test Function ---
 def test_lambda_handler_success(monkeypatch):
     
-    # 1. NEW: Mock the external API call to return fake data
-    monkeypatch.setattr("requests.get", MockRequests.get)
+    # --- MOCKING SETUP ---
     
-    # Mock SNS publish: This ensures no real AWS calls are made.
-    # Note: We mock the actual publish method on the client object itself.
-    def mock_publish(**kwargs):
-        # We need to return a dict that contains a MessageId
-        return {"MessageId": "12345"}
-
-    # Replace the actual 'publish' method on the existing handler's SNS_CLIENT
-    monkeypatch.setattr(handler.SNS_CLIENT, "publish", mock_publish)
+    # A) Mock the external API call (requests.get)
+    monkeypatch.setattr(requests, "get", MockRequests.get)
     
-    # Ensure required environment variables are set for the handler function's os.environ.get() checks
-    # This also helps stabilize the environment variables read by the handler.
+    # B) Mock the boto3.client call
+    #    When handler.py calls boto3.client("sns", ...), 
+    #    it will get an instance of our MockSNSClient instead.
+    monkeypatch.setattr(boto3, "client", MockSNSClient)
+    
+    # C) Set the environment variables the handler needs
     monkeypatch.setenv("TOPIC_ARN", "arn:aws:sns:eu-west-1:123456789012:dummy-topic")
-    monkeypatch.setenv("API_KEY", "dummy-api-key")
+    monkeypatch.setenv("api_key", "dummy-api-key") # Use lowercase 'api_key' to match handler
 
+    # --- EXECUTION ---
     event = {"test": "football-alerts"}
-    
-    # Call the actual Lambda handler
     result = handler.lambda_handler(event, None)
 
     # --- ASSERTIONS ---
     
-    # Your handler returns 200 upon success
+    # Check for the 200 OK status
     assert result["statusCode"] == 200
-    # FIX: Assert the content we expect from a successful run with our mocked data.
-    # It should confirm the number of alerts published.
+    
+    # Check that the body confirms 1 alert was processed
     assert "Published 1 alert(s)." in result["body"]
