@@ -73,5 +73,5 @@ def test_lambda_handler_success(monkeypatch):
     # Check for the 200 OK status
     assert result["statusCode"] == 200
     
-    # Check that the body confirms 1 alert was processed
+    # Check that the body confirms 1 alert was processed 
     assert "Published 1 alert(s)." in result["body"]
