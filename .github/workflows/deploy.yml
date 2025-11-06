@@ -44,6 +44,24 @@ jobs:
         with:
           terraform_version: 1.9.0
 
+      - name: Clear stale Terraform lock (best-effort)
+        working-directory: infra
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: eu-west-2
+        run: |
+          echo "Scanning for stale Terraform locks in DynamoDB table 'terraform-locks'..."
+          LOCK_IDS=$(aws dynamodb scan --table-name terraform-locks --query 'Items[].LockID.S' --output text || true)
+          if [ -n "$LOCK_IDS" ]; then
+            for ID in $LOCK_IDS; do
+              echo "Deleting stale lock: $ID"
+              aws dynamodb delete-item --table-name terraform-locks --key "{\"LockID\":{\"S\":\"$ID\"}}" || true
+            done
+          else
+            echo "No existing locks found."
+          fi
+
       - name: Terraform Init
         working-directory: infra
         env:
@@ -90,7 +108,7 @@ jobs:
           # 2. Run terraform commands (forces zip creation)
           terraform fmt -recursive
           terraform validate
-          terraform plan -destroy -out=out.plan
+          terraform plan -destroy -lock-timeout=3m -out=out.plan
           rm out.plan
           
           # 3. Path to the ZIP file (created by the plan command above)
