@@ -63,7 +63,7 @@ jobs:
       #     AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       #     AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       #     AWS_REGION: eu-west-2
-      #     TF_VAR_aws_profile: ""
+      #     TF_VAR_aws_profile: "" 
       #   run: | 
       #     ## The '|| true' ensures the workflow doesn't fail if the resource is already in state or doesn't exist
       #     terraform import aws_cloudwatch_log_group.lambda_log_group /aws/lambda/football-alerts-lambda || true
