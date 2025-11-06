@@ -79,6 +79,14 @@ jobs:
           # 1. Install unzip dependency for size checks
           sudo apt-get update && sudo apt-get install -y unzip
           
+          # --- NEW DEBUG STEP ---
+          # We add this check *before* terraform runs to see if the runner
+          # can authenticate with AWS at all.
+          echo "Attempting to verify AWS credentials..."
+          aws sts get-caller-identity
+          echo "AWS credential check complete."
+          # --- END DEBUG STEP ---
+          
           # 2. Run terraform commands (forces zip creation)
           terraform fmt -recursive
           terraform validate
@@ -103,17 +111,7 @@ jobs:
           
           # 6. Clean up
           rm -rf /tmp/lambda_check
-          
-      - name: Terraform Plan
-        working-directory: infra
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: eu-west-2
-          TF_VAR_aws_profile: ""
-        run: terraform plan -input=false
 
-      # Optional automatic deploy on main
       - name: Terraform Apply (main only)
         if: github.ref == 'refs/heads/main'
         working-directory: infra
