@@ -113,7 +113,8 @@ resource "aws_lambda_function" "football_alerts" {
     variables = {
       TOPIC_ARN = aws_sns_topic.football_alerts.arn
       # NEW: Securely injects the API key from GitHub Secrets
-      API_KEY   = var.api_key
+      # Note: Using lowercase 'api_key' to match what handler.py expects
+      api_key   = var.api_key
     }
   }
   
