@@ -108,7 +108,8 @@ jobs:
           # 2. Run terraform commands (forces zip creation)
           terraform fmt -recursive
           terraform validate
-          terraform plan -destroy -lock-timeout=3m -out=out.plan
+          # Create a regular plan to force zip creation (not destroy)
+          terraform plan -lock-timeout=3m -out=out.plan
           rm out.plan
           
           # 3. Path to the ZIP file (created by the plan command above)
