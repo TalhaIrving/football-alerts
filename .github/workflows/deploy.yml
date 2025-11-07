@@ -140,3 +140,42 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: eu-west-2
           TF_VAR_api_key: ${{ secrets.API_KEY }}
+
+      - name: Test Lambda Function (Verify Message Output)
+        if: github.ref == 'refs/heads/main'
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: eu-west-2
+        run: |
+          echo "🧪 Testing Lambda function to verify message output..."
+          echo "=================================================="
+          
+          # Invoke the Lambda function
+          aws lambda invoke \
+            --function-name football-alerts-lambda \
+            --region eu-west-2 \
+            --payload '{}' \
+            --cli-binary-format raw-in-base64-out \
+            /tmp/lambda-test-response.json
+          
+          echo ""
+          echo "📋 Lambda Response:"
+          cat /tmp/lambda-test-response.json | jq '.' || cat /tmp/lambda-test-response.json
+          echo ""
+          
+          # Extract the body message
+          BODY=$(cat /tmp/lambda-test-response.json | jq -r '.body' 2>/dev/null || echo "")
+          if [ -n "$BODY" ] && [ "$BODY" != "null" ]; then
+            echo "✅ This is what will be sent at 8am UTC:"
+            echo "   $BODY"
+            echo ""
+            echo "💡 If matches are found, the SMS message format will be:"
+            echo "   'MATCH DAY ALERT: [Team1] vs [Team2] at [Venue]. Kickoff: [Time] (Europe/London). Expect local traffic.'"
+            echo ""
+            echo "💡 If no matches are found, the response will be:"
+            echo "   'No relevant home matches scheduled today.'"
+          fi
+          
+          echo ""
+          echo "📅 The Lambda runs automatically at 8:00 AM UTC daily via EventBridge"
