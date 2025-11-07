@@ -86,6 +86,13 @@ jobs:
       #     ## The '|| true' ensures the workflow doesn't fail if the resource is already in state or doesn't exist
       #     terraform import aws_cloudwatch_log_group.lambda_log_group /aws/lambda/football-alerts-lambda || true
 
+      - name: Install Lambda Dependencies
+        working-directory: infra/lambda
+        run: |
+          echo "Installing Python dependencies for Lambda package..."
+          pip install --target . -r requirements.txt
+          echo "Dependencies installed into lambda directory"
+
       - name: Terraform Format, Validate, and Plan
         working-directory: infra
         env:

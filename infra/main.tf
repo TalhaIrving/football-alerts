@@ -127,6 +127,16 @@ data "archive_file" "lambda_zip" {
   type        = "zip"
   source_dir  = "${path.module}/lambda"
   output_path = "${path.module}/lambda.zip"
+  
+  # Exclude test files and virtual environments from the package
+  excludes = [
+    "tests/**",
+    ".venv/**",
+    "venv/**",
+    "__pycache__/**",
+    "*.pyc",
+    ".pytest_cache/**"
+  ]
 }
 
 # IAM role policy for Lambda to publish to SNS
