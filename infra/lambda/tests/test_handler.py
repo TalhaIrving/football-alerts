@@ -17,7 +17,7 @@ MOCK_API_RESPONSE = {
                 "status": {"long": "Not Started", "short": "NS"}
             },
             "teams": {
-                "home": {"id": 33, "name": "Aston Villa", "winner": None}, # Target team ID 33
+                "home": {"id": 66, "name": "Aston Villa", "winner": None}, # Target team ID 66
                 "away": {"id": 40, "name": "Liverpool", "winner": None}
             }
         }
