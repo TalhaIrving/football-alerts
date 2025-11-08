@@ -101,6 +101,7 @@ resource "aws_lambda_function" "football_alerts" {
   role             = aws_iam_role.lambda_exec.arn
   handler          = "handler.lambda_handler"
   runtime          = "python3.12"
+  timeout          = 30  # 30 seconds - enough for API calls and SNS publishing
 
   # Deployment via S3 (to bypass the 50MB direct API upload limit)
   s3_bucket        = aws_s3_object.lambda_deployment_zip.bucket
