@@ -12,7 +12,7 @@ API_BASE_URL = "https://v3.football.api-sports.io/fixtures"
 API_HOST = "v3.football.api-sports.io" # <--- NEW: Host header value
 
 # We use hardcoded IDs for Aston Villa (33) and Birmingham City (36)
-TARGET_TEAM_IDS = [33, 36] 
+TARGET_TEAM_IDS = [66, 54] 
 TIMEZONE = "Europe/London"
 
 def fetch_and_filter_fixtures(api_key):
