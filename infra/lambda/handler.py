@@ -52,6 +52,9 @@ def fetch_and_filter_fixtures(api_key):
 
     # Alerts list starts here if the API call was successful
     alerts = []
+    total_fixtures = len(data.get("response", []))
+    print(f"Processing {total_fixtures} fixtures for today")
+    print(f"Target team IDs: {TARGET_TEAM_IDS}")
 
     for fixture_data in data.get("response", []):
         fixture = fixture_data.get("fixture", {})
@@ -59,17 +62,37 @@ def fetch_and_filter_fixtures(api_key):
         venue_info = fixture.get("venue", {})
         
         # Check if the fixture involves one of our target teams (by ID)
+        # Convert to int to handle cases where API returns IDs as strings
         home_id = teams.get("home", {}).get("id")
         away_id = teams.get("away", {}).get("id")
+        home_team_name = teams.get("home", {}).get("name", "Unknown Home Team")
+        away_team_name = teams.get("away", {}).get("name", "Unknown Away Team")
+        
+        # Convert IDs to integers for proper comparison (handles string IDs from API)
+        try:
+            home_id = int(home_id) if home_id is not None else None
+            away_id = int(away_id) if away_id is not None else None
+        except (ValueError, TypeError):
+            # Skip this fixture if IDs can't be converted
+            print(f"WARNING: Could not parse team IDs - {home_team_name} (home: {home_id}), {away_team_name} (away: {away_id})")
+            continue
 
-        if home_id in TARGET_TEAM_IDS or away_id in TARGET_TEAM_IDS: # <--- NEW: Filtering logic
+        # Log ALL fixtures for debugging
+        print(f"Checking: {home_team_name} (ID: {home_id}) vs {away_team_name} (ID: {away_id})")
+        
+        # Only alert if one of the teams is in our target list
+        # This ensures we only get alerts for matches involving our target teams
+        is_target_match = (home_id is not None and home_id in TARGET_TEAM_IDS) or (away_id is not None and away_id in TARGET_TEAM_IDS)
+        
+        if is_target_match:
+            # Debug logging to verify filtering is working correctly
+            print(f"MATCH FOUND: {home_team_name} (ID: {home_id}) vs {away_team_name} (ID: {away_id})")
+            print(f"   home_id {home_id} in targets? {home_id in TARGET_TEAM_IDS if home_id else False}")
+            print(f"   away_id {away_id} in targets? {away_id in TARGET_TEAM_IDS if away_id else False}")
             
             # --- Filtering Logic ---
             # NOTE: We alert on ANY match involving target teams today, 
             # assuming it's local traffic relevant for Birmingham.
-            
-            home_team_name = teams.get("home", {}).get("name", "Unknown Home Team")
-            away_team_name = teams.get("away", {}).get("name", "Unknown Away Team")
             venue_name = venue_info.get("name", "Unknown Venue")
             
             # Extract time and format it
@@ -88,7 +111,11 @@ def fetch_and_filter_fixtures(api_key):
                 f"Kickoff: {kickoff_time} ({TIMEZONE}). Expect local traffic."
             )
             alerts.append(message)
+        else:
+            # Log fixtures that were filtered out
+            print(f"FILTERED OUT: {home_team_name} (ID: {home_id}) vs {away_team_name} (ID: {away_id}) - neither team in target list")
 
+    print(f"Summary: {len(alerts)} alert(s) created from {total_fixtures} total fixture(s)")
     return alerts # <--- This is the last line of fetch_and_filter_fixtures
 
 
