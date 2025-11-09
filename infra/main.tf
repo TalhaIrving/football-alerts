@@ -220,37 +220,85 @@ resource "aws_cloudwatch_dashboard" "main" {
 
   dashboard_body = jsonencode({
     widgets = [
+      
+      # WIDGET 1: LAMBDA INVOCATIONS (Your original widget, slightly improved)
       {
         type   = "metric"
         x      = 0
         y      = 0
         width  = 12
         height = 6
-
         properties = {
           metrics = [
             [
               "AWS/Lambda",
               "Invocations",
               "FunctionName",
-              "football-alerts-lambda"
+              "football-alerts-lambda" # This MUST match your Lambda's name
             ]
           ]
           period = 300
-          stat   = "Average"
+          stat   = "Sum" # <-- Changed to Sum (total runs)
           region = "eu-west-2"
-          title  = "Football Alerts Lambda Invocations"
+          title  = "Lambda Invocations (Did it run?)"
         }
       },
+
+      # WIDGET 2: LAMBDA ERRORS (NEW)
+      {
+        type   = "metric"
+        x      = 12      # <-- Positioned to the right of the first widget
+        y      = 0
+        width  = 12
+        height = 6
+        properties = {
+          metrics = [
+            [
+              "AWS/Lambda",
+              "Errors",
+              "FunctionName",
+              "football-alerts-lambda" # This MUST match your Lambda's name
+            ]
+          ]
+          period = 300
+          stat   = "Sum" # You want the total number of errors
+          region = "eu-west-2"
+          title  = "Lambda Errors (Did it crash?)"
+        }
+      },
+
+      # WIDGET 3: SNS MESSAGES SENT (NEW)
+      {
+        type   = "metric"
+        x      = 0
+        y      = 7      # <-- Positioned below the first widget
+        width  = 12
+        height = 6
+        properties = {
+          metrics = [
+            [
+              "AWS/SNS",
+              "NumberOfMessagesPublished",
+              "TopicName",
+              "football-alerts-topic" # <-- IMPORTANT: Change this if your SNS Topic Name is different!
+            ]
+          ]
+          period = 300
+          stat   = "Sum"
+          region = "eu-west-2"
+          title  = "SNS Messages Sent (Did it send the SMS?)"
+        }
+      },
+
+      # WIDGET 4: YOUR ORIGINAL TEXT BOX
       {
         type   = "text"
-        x      = 0
+        x      = 12      # <-- Positioned to the right of the SNS widget
         y      = 7
-        width  = 3
-        height = 3
-
+        width  = 12
+        height = 6
         properties = {
-          markdown = "Football Alerts Lambda Dashboard"
+          markdown = "## Football Alerts Dashboard\n\nThis dashboard monitors the end-to-end health of the serverless alert system.\n\n* **Invocations:** Shows if the Lambda ran on schedule.\n* **Errors:** Shows if the Lambda code crashed.\n* **SNS Messages:** Shows if an SMS alert was successfully sent."
         }
       }
     ]
