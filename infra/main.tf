@@ -212,3 +212,47 @@ resource "aws_lambda_permission" "allow_eventbridge" {
   principal     = "events.amazonaws.com"
   source_arn    = aws_cloudwatch_event_rule.football_alerts_schedule.arn
 }
+
+
+# Cloudwatch Dashboard
+resource "aws_cloudwatch_dashboard" "main" {
+  dashboard_name = "football-alerts-dashboard"
+
+  dashboard_body = jsonencode({
+    widgets = [
+      {
+        type   = "metric"
+        x      = 0
+        y      = 0
+        width  = 12
+        height = 6
+
+        properties = {
+          metrics = [
+            [
+              "AWS/EC2",
+              "CPUUtilization",
+              "InstanceId",
+              "football-alerts-lambda"
+            ]
+          ]
+          period = 300
+          stat   = "Average"
+          region = "eu-west-2"
+          title  = "Football Alerts Lambda CPU"
+        }
+      },
+      {
+        type   = "text"
+        x      = 0
+        y      = 7
+        width  = 3
+        height = 3
+
+        properties = {
+          markdown = "Football Alerts Lambda Dashboard"
+        }
+      }
+    ]
+  })
+}
