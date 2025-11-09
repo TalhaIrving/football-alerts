@@ -82,7 +82,7 @@ def fetch_and_filter_fixtures(api_key):
         
         # Only alert if one of the teams is in our target list
         # This ensures we only get alerts for matches involving our target teams
-        is_target_match = (home_id is not None and home_id in TARGET_TEAM_IDS) or (away_id is not None and away_id in TARGET_TEAM_IDS)
+        is_target_match = (home_id is not None and home_id in TARGET_TEAM_IDS)
         
         if is_target_match:
             # Debug logging to verify filtering is working correctly
