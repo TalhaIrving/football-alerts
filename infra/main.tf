@@ -230,16 +230,16 @@ resource "aws_cloudwatch_dashboard" "main" {
         properties = {
           metrics = [
             [
-              "AWS/EC2",
-              "CPUUtilization",
-              "InstanceId",
+              "AWS/Lambda",
+              "Invocations",
+              "FunctionName",
               "football-alerts-lambda"
             ]
           ]
           period = 300
           stat   = "Average"
           region = "eu-west-2"
-          title  = "Football Alerts Lambda CPU"
+          title  = "Football Alerts Lambda Invocations"
         }
       },
       {
