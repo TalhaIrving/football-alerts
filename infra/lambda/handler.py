@@ -20,7 +20,8 @@ def fetch_and_filter_fixtures(api_key):
     
     # Get today's date in YYYY-MM-DD format as required by the 'date' parameter
     local_tz = pytz.timezone(TIMEZONE)
-    today_date = datetime.now(pytz.utc).astimezone(local_tz).strftime("%Y-%m-%d")
+    #today_date = datetime.now(pytz.utc).astimezone(local_tz).strftime("%Y-%m-%d")
+    today_date = "2025-11-09"
     
     # API-Football V3 requires BOTH the key and the host in the headers
     headers = { 
