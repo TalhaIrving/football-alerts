@@ -77,7 +77,26 @@ resource "aws_iam_role_policy_attachment" "lambda_logging" {
   # Ensures the role name is used correctly
   role       = aws_iam_role.lambda_exec.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+
+
 }
+
+# 3. ADD THIS NEW BLOCK: DynamoDB PutItem permission
+resource "aws_iam_role_policy" "lambda_dynamodb_put_item" {
+  name = "lambda-dynamodb-put-item"
+  role = aws_iam_role.lambda_exec.id
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect   = "Allow",
+        Action   = "dynamodb:PutItem",
+        Resource = aws_dynamodb_table.deduplication_table.arn
+      }
+    ]
+  })
+}
+
 
 # ----------------------------------------------------
 # S3 Object and Lambda Function (Updated for S3 Deployment)
@@ -303,4 +322,29 @@ resource "aws_cloudwatch_dashboard" "main" {
       }
     ]
   })
+}
+
+# --- DynamoDB Table for Deduplication ---
+# This table stores Match IDs to prevent duplicate alerts
+
+resource "aws_dynamodb_table" "deduplication_table" {
+  name           = "football-alerts-deduplication"
+  billing_mode   = "PAY_PER_REQUEST" # Best for serverless/low traffic
+  hash_key       = "MatchID"
+
+  attribute {
+    name = "MatchID"
+    type = "S" # S for String
+  }
+
+  # Enable Time To Live (TTL) on the 'ExpiryTime' attribute
+  # This automatically cleans out old match IDs after ~2 days
+  ttl {
+    attribute_name = "ExpiryTime"
+    enabled        = true
+  }
+
+  tags = {
+    Name = "Football Alerts Deduplication"
+  }
 }
