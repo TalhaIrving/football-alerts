@@ -73,12 +73,29 @@ resource "aws_iam_role" "lambda_exec" {
 }
 
 # IAM role policy attachment for Lambda logging
-resource "aws_iam_role_policy_attachment" "lambda_logging" {
-  # Ensures the role name is used correctly
-  role       = aws_iam_role.lambda_exec.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+# This explicitly allows logging ONLY to the specific log group the Lambda uses.
+resource "aws_iam_role_policy" "lambda_logging" {
+  name = "lambda-logging-policy"
+  role = aws_iam_role.lambda_exec.id
 
-
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow",
+        Action = [
+          "logs:CreateLogStream",
+          "logs:PutLogEvents"
+        ],
+        Resource = "${aws_cloudwatch_log_group.lambda_log_group.arn}:*"
+      },
+      {
+        Effect = "Allow",
+        Action = "logs:CreateLogGroup",
+        Resource = aws_cloudwatch_log_group.lambda_log_group.arn
+      }
+    ]
+  })
 }
 
 # 3. ADD THIS NEW BLOCK: DynamoDB PutItem permission
