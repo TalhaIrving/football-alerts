@@ -18,3 +18,9 @@ variable "api_key" {
   type        = string
   sensitive   = true # Ensures the value is masked in logs
 }
+
+variable "terraform_state_bucket_name" {
+  description = "Name of the S3 bucket for Terraform state storage"
+  type        = string
+  default     = "football-alerts-terraform-state"
+}
