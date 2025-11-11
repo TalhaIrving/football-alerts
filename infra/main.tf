@@ -135,6 +135,8 @@ resource "aws_lambda_function" "football_alerts" {
       # NEW: Securely injects the API key from GitHub Secrets
       # Note: Using lowercase 'api_key' to match what handler.py expects
       api_key   = var.api_key
+      # NEW: Securely injects the DynamoDB table name from Terraform
+      DEDUPLICATION_TABLE_NAME = aws_dynamodb_table.deduplication_table.name
     }
   }
   
