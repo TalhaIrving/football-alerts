@@ -4,7 +4,9 @@ from datetime import datetime
 import pytz # for timezone
 import boto3 # for SNS publishing
 import requests # for external API calls
+from dotenv import load_dotenv # for loading environment variables from local .env file
 
+load_dotenv()
 
 # --- Configuration ---
 # Base URL confirmed from your request samples
