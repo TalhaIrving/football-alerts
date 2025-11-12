@@ -5,6 +5,9 @@ import pytz # Required by handler logic
 import json
 from datetime import datetime
 import pytest
+from dotenv import load_dotenv # for loading environment variables from local .env file
+
+load_dotenv()
 
 # --- 1. Mock Data for API ---
 # This simulates a successful API-Football response with one relevant match
