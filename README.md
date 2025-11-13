@@ -1,181 +1,87 @@
 ⚽ Football Alerts – Match-Day Traffic Notifications
 
-This project provisions an automated, serverless system to deliver SMS alerts for upcoming home football matches involving specific teams (currently Birmingham City and Aston Villa). The goal is to provide timely notifications to help users plan around heavy match-day traffic in the Birmingham area.
+This project provisions an automated, serverless system to deliver SMS alerts for upcoming home football matches involving specific local teams (Aston Villa and Birmingham City). The goal is to provide timely notifications to help users plan around heavy match-day traffic in the Birmingham area.
 
 The entire infrastructure is defined and deployed using Terraform and managed via a GitHub Actions CI/CD pipeline.
 
-✨ Features
+✨ Completed Professional Features
 
-Automated Scheduling: Uses AWS EventBridge (CloudWatch Events) to trigger the Lambda function on a daily schedule.
+Idempotency & Deduplication: Implemented a DynamoDB table to track sent match IDs, ensuring the system never sends duplicate SMS alerts even during AWS retries or manual testing failures.
 
-API Integration: The Lambda function fetches fixtures, filters for relevant home matches, and prepares alerts.
+Least Privilege IAM: Replaced the overly broad default logging policy with a custom one, granting the Lambda function only the specific permissions needed for logging and operations.
 
-SMS Delivery: Utilizes Amazon Simple Notification Service (SNS) for reliable, low-latency text message delivery.
+Home Game Filtering: The Python handler is configured to discriminate, only triggering alerts for home games where the home_id matches the target teams (Aston Villa: 66, Birmingham City: 54).
+
+Monitoring & Observability: Created a custom CloudWatch Dashboard to monitor end-to-end health (Invocations, Errors, SNS Publishes).
 
 Infrastructure as Code (IaC): Full environment managed by Terraform with remote state management (S3 + DynamoDB).
-
-Continuous Deployment: Automated linting, testing, and infrastructure deployment via GitHub Actions.
-
-Monitoring & Observability: A comprehensive CloudWatch Dashboard provides real-time, end-to-end visibility into the system's health (Lambda Invocations, Errors, and SNS Messages Sent), all defined in Terraform.
 
 🏗️ Architecture Overview
 
 The system follows a simple, scheduled serverless workflow:
 
-Key Components:
-
-AWS EventBridge: Schedules the Lambda function to run at a specific time (e.g., every morning).
+AWS EventBridge: Schedules the Lambda function to run daily.
 
 AWS Lambda (Python 3.12): Executes the Python code, calls the external fixtures API (API-Football V3), and determines if an alert should be sent.
 
-AWS SNS: Publishes the final alert message to all subscribed endpoints (your mobile number).
+Amazon DynamoDB: Stores match IDs to prevent duplicate alerts (Deduplication).
 
-AWS CloudWatch: Provides logging, metrics, and a dashboard for end-to-end observability.
-
-Terraform: Defines all resources, including the Lambda function, SNS topic, IAM permissions, and the CloudWatch Dashboard.
-
-AWS S3 & DynamoDB: Used for Terraform's remote state backend and state locking.
-
-📦 Technologies Used
-
-Cloud Infrastructure: AWS Lambda, AWS SNS, AWS EventBridge, AWS IAM, AWS S3, AWS DynamoDB, AWS CloudWatch
-
-Infrastructure as Code (IaC): Terraform
-
-Language: Python 3.12
-
-Automation: GitHub Actions
-
-Testing: pytest (local unit testing)
-
-⚙️ CI/CD Pipeline (GitHub Actions)
-
-The CI/CD pipeline (.github/workflows/deploy.yml) ensures automated, tested, and standardized deployment of the infrastructure and code.
-
-Pipeline Structure
-
-The pipeline consists of a single job (build-test-deploy) that is automatically triggered on every push to the main branch or on any Pull Request. It authenticates to AWS using secure GitHub Repository Secrets (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY).
-
-Deployment Process
-
-The deployment uses a robust multi-step approach:
-
-Setup & Tests: Checks out code, sets up Python, installs dependencies, and executes unit tests (pytest).
-
-Terraform Initialization: Initializes the project, connecting to the remote state backend (S3/DynamoDB).
-
-Code Packaging & Validation: The terraform plan step forces the creation of the Lambda ZIP artifact (lambda.zip) and runs local size checks. It also runs terraform fmt and terraform validate.
-
-Deployment (Apply): The terraform apply command executes only on the main branch, provisioning or updating all AWS resources.
-
-🚀 Setup & Manual Testing
-
-This guide assumes you have the AWS CLI and Terraform installed locally.
-
-Prerequisites
-
-You must set the following environment variables for local execution, or ensure they are set as GitHub Secrets for the pipeline.
-
-Variable
-
-Description
-
-CI/CD Source
-
-AWS_ACCESS_KEY_ID
-
-Your AWS access key
-
-GitHub Secret
-
-AWS_SECRET_ACCESS_KEY
-
-Your AWS secret key
-
-GitHub Secret
-
-TF_VAR_api_key
-
-API-Football API Key
-
-GitHub Secret
-
-Manual Deployment (For Initial Setup/Debugging)
-
-(Steps for local terraform init, plan, and apply...)
-
-Local Lambda Testing
-
-(Steps for local python3 handler.py...)
-
-End-to-End Test (Via AWS CLI)
-
-After deployment, invoke the Lambda function manually to test the full pipeline:
-
-aws lambda invoke \
---function-name football-alerts-lambda \
---payload '{"test":"match-check"}' \
---cli-binary-format raw-in-base64-out \
---region eu-west-2 \
-response.json
-
-
-Expected output (if a home game is scheduled):
-
-{
-  "statusCode": 200,
-  "body": "Published 1 alert(s). IDs: ..."
-}
-
-
-Expected output (if no home game is scheduled):
-
-{
-  "statusCode": 200,
-  "body": "No relevant home matches scheduled today."
-}
-
+AWS SNS: Publishes the final alert message via SMS.
 
 🛠️ Key Implementation Details
 
-This section details how the project's core features were implemented.
+This section details how the project's core features were implemented in code.
 
-1. Automated Scheduling (EventBridge)
+1. Scheduler and API Integration
 
-The Lambda function is triggered automatically every morning at 8:00 AM UTC. This is defined in infra/main.tf using two Terraform resources:
+Scheduler: The aws_cloudwatch_event_rule resource is configured with the expression cron(0 8 * * ? *), ensuring the Lambda executes daily at 8:00 AM UTC.
 
-aws_cloudwatch_event_rule "every_morning": This resource defines the schedule using a cron(0 8 * * ? *) expression.
+API Logic: The Python handler uses the requests library and authenticates via an api_key environment variable. The code calculates the current date and sends a targeted query to the API-Football V3 /fixtures endpoint for all games on that specific day.
 
-aws_cloudwatch_event_target "trigger_lambda": This resource links the event rule to the Lambda function, giving it permission to invoke the function when the schedule is met.
+Filtering: The function executes the core filtering logic by checking if the fixture's home_id is present within the hardcoded TARGET_TEAM_IDS list ([66, 54]), bypassing all away games.
 
-2. API Integration & Filtering (Lambda)
+2. Security and Deduplication
 
-The core application logic resides in infra/lambda/handler.py.
+Idempotency: A DynamoDB table (football-alerts-deduplication) is created with a TTL (Time To Live) attribute. The Python handler executes a conditional PutItem operation: the SMS is only sent if the database confirms the match ID does not already exist, preventing duplicate alerts from being sent during retries.
 
-API Call: The function uses the Python requests library to call the API-Football V3 /fixtures endpoint. It authenticates by passing the api_key (sourced from GitHub Secrets and passed to Terraform as a variable) in the request headers.
+Least Privilege Logging: The Lambda's logging policy no longer uses the * wildcard. Instead, it grants permission only to the specific log group created by the aws_cloudwatch_log_group resource (/aws/lambda/football-alerts-lambda).
 
-Filtering Logic: The function requests all fixtures for the current date. It then loops through the results and filters them based on two criteria:
+3. Monitoring
 
-Home Game: The match's home_id must be in the target list.
+The system's operational health is tracked via a custom aws_cloudwatch_dashboard resource that explicitly monitors three key metrics:
 
-Target Team: The home_id must match one of the verified IDs for our teams: 66 (Aston Villa) or 54 (Birmingham City).
+AWS/Lambda:Invocations (Sum)
 
-Outcome: If no matches are found, the function exits gracefully. If a match is found, it proceeds to publish an alert.
+AWS/Lambda:Errors (Sum)
 
-3. Monitoring & Observability (CloudWatch)
+AWS/SNS:NumberOfMessagesPublished (Sum)
 
-End-to-end system health is monitored using a custom dashboard defined in infra/main.tf via the aws_cloudwatch_dashboard resource. This dashboard provides immediate, at-a-glance proof that the system is working and includes three critical widgets:
+🚀 Setup & Local Testing
 
-Lambda Invocations (Sum): Proves that the EventBridge scheduler successfully triggered the Lambda function.
+Local Secrets Management
 
-Lambda Errors (Sum): Proves that the Python code executed without crashing (e.g., no API timeouts or code exceptions).
+To run the function locally, you must provide the environment variables:
 
-SNS Messages Published (Sum): Proves that the function's logic was met (a home game was found) and that the final alert was successfully sent to SNS.
+Create .env: Create a file named .env inside the infra/lambda directory (ensure it is listed in your .gitignore).
 
-✍️ Author
+Populate .env: Add your actual API key and Topic ARN to the file:
 
-Talha Irving
+api_key="YOUR_ACTUAL_API_FOOTBALL_KEY_HERE"
+TOPIC_ARN="arn:aws:sns:eu-west-2:XXXXXX:football-alerts-topic"
 
-📄 License
 
-This project is licensed under the MIT License
+Local Lambda Execution
+
+You must activate the virtual environment and load the environment file before testing:
+
+# 1. Navigate to the Lambda directory
+cd infra/lambda
+
+# 2. Activate the virtual environment
+source .venv/bin/activate
+
+# 3. Test the handler logic (it loads secrets from .env automatically)
+python3 handler.py
+
+# 4. Deactivate the environment when done
+deactivate
