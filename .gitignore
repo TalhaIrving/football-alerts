@@ -44,3 +44,6 @@ venv/
 .venv/
 __pycache__/
 .pytest_cache/
+
+# Environment variables
+infra/lambda/.env
