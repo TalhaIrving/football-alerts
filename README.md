@@ -59,10 +59,15 @@ This section describes how core features operate in the production environment:
 
 --------------------------------------------------------------------------------
 Technologies Used
+
 • Cloud Infrastructure: AWS Lambda, AWS SNS, AWS EventBridge, AWS IAM, AWS S3, AWS DynamoDB, AWS CloudWatch.
+
 • Infrastructure as Code (IaC): Terraform.
+
 • Language: Python 3.12.
+
 • Automation: GitHub Actions.
+
 • Testing: pytest (for local unit testing).
 
 --------------------------------------------------------------------------------
