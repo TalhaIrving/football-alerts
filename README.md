@@ -24,7 +24,8 @@ This system incorporates industry best practices to ensure reliability, security
 
 --------------------------------------------------------------------------------
 Architecture Overview
-<img width="1024" height="1024" alt="image" src="https://github.com/user-attachments/assets/6c340c80-8f3b-40a2-9d56-02c5bb669c52" />
+<img width="1348" height="753" alt="image" src="https://github.com/user-attachments/assets/5203c437-ede4-41f4-8baf-9797c0927685" />
+
 
 
 The system follows a simple, scheduled serverless workflow:
