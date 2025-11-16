@@ -29,11 +29,17 @@ Architecture Overview
 
 The system follows a simple, scheduled serverless workflow:
 The AWS EventBridge schedules the Lambda function to run at a specific time (e.g., every morning). The AWS Lambda function executes the Python code, calls the external fixtures API, and determines if an alert should be sent. If an alert is required and has not been previously sent (checked against DynamoDB), the Lambda function then publishes the final alert message to all subscribed endpoints via AWS SNS.
+
 Key Components:
+
 • AWS EventBridge: Schedules the Lambda function for daily execution.
+
 • AWS Lambda (Python 3.12): Executes the application logic, API fetching, filtering, and alert preparation.
+
 • AWS SNS: Publishes the final alert message to subscribed mobile numbers.
+
 • AWS DynamoDB: Stores records of sent alerts to ensure deduplication.
+
 • Terraform: Defines the Lambda function, SNS topic, IAM permissions, EventBridge rules, and deployment logic.
 
 --------------------------------------------------------------------------------
