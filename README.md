@@ -131,7 +131,7 @@ Follow these steps sequentially to set up the project environment on your local 
     ```
 
 5.  **Configure Local Secrets**
-    Create the necessary file to hold your API key for local testing. **Crucially, ensure this file is listed in your .gitignore.**
+    Create the necessary file to hold your [API key](https://dashboard.api-football.com/login/) for local testing. **Crucially, ensure this file is listed in your .gitignore.**
     * Create a file named **`.env`** in the `infra/lambda` directory.
     * Add your actual credentials inside the file:
         ```
