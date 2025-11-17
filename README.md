@@ -1,9 +1,11 @@
 Football Alerts – Match-Day Traffic Notifications
+
 This project provisions an automated, serverless system to deliver SMS alerts for upcoming football matches involving specific teams (currently Birmingham City and Aston Villa). The goal is to provide timely notifications to help users plan around heavy match-day traffic in the Birmingham area.
 The entire infrastructure is defined and deployed using Terraform and managed via a GitHub Actions CI/CD pipeline.
 
 --------------------------------------------------------------------------------
 Features (The "Why")
+
 This system incorporates industry best practices to ensure reliability, security, and maintainability:
 
 • Automated Scheduling: AWS EventBridge (CloudWatch Events) triggers the Lambda function on a daily schedule.
@@ -29,6 +31,7 @@ Architecture Overview
 
 
 The system follows a simple, scheduled serverless workflow:
+
 The AWS EventBridge schedules the Lambda function to run at a specific time (e.g., every morning). The AWS Lambda function executes the Python code, calls the external fixtures API, and determines if an alert should be sent. If an alert is required and has not been previously sent (checked against DynamoDB), the Lambda function then publishes the final alert message to all subscribed endpoints via AWS SNS.
 
 Key Components:
@@ -45,6 +48,7 @@ Key Components:
 
 --------------------------------------------------------------------------------
 Key Implementation Details (How the System Functions)
+
 This section describes how core features operate in the production environment:
 1. Remote State Management: Terraform utilizes S3 and DynamoDB to configure the backend for remote state management. This practice ensures state locking and collaboration when managing infrastructure.
 
@@ -73,6 +77,7 @@ Technologies Used
 
 --------------------------------------------------------------------------------
 Project Development Timeline
+
 The project development followed a structured approach, focusing first on core infrastructure and later incorporating advanced features like security, monitoring, and CI/CD:
 
 1. Repository Foundation and Infrastructure Skeleton: The initial step involved creating the GitHub repository with a clean structure, including dedicated directories for infrastructure (infra/), application code (lambda/), and documentation (docs/). The Terraform boilerplate was written to configure the AWS provider and establish remote state management utilizing S3 and DynamoDB, demonstrating best practice. An Amazon SNS topic was defined, and the subscription endpoint (the mobile phone number) was successfully added.
@@ -85,7 +90,7 @@ The project development followed a structured approach, focusing first on core i
 
 5. Monitoring and Logging: Operational visibility was established by enabling CloudWatch logs for the Lambda function. A critical CloudWatch alarm was configured to monitor system health; this alarm sends an SNS alert if the error count exceeds a threshold (e.g., error count > 1). Furthermore, a basic metrics dashboard was added in the AWS console for quick operational oversight.
 
-6. Security Refinement and Deduplication: To enhance resilience, a DynamoDB table was introduced solely for tracking match notifications that have already been sent, which effectively avoids sending duplicate alerts to users. Security was finalized by tightening the IAM roles to strictly enforce the principle of least privilege. Lastly, Terraform variable management (using workspaces or .tfvars) was implemented for handling environment-specific configurations.
+6. Security Refinement and Deduplication: To enhance resilience, a DynamoDB table was introduced solely for tracking match notifications that have already been sent, which effectively avoids sending duplicate alerts to users. Security was finalized by tightening the IAM roles to strictly enforce the principle of least privilege. Lastly, Terraform variable management (using .tfvars) was implemented for handling environment-specific configurations.
 
 --------------------------------------------------------------------------------
 
