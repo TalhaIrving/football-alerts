@@ -215,3 +215,4 @@ jobs:
           echo "   CloudWatch -> Log Groups -> /aws/lambda/football-alerts-lambda"
           echo ""
           echo "The Lambda runs automatically at 8:00 AM UTC daily via EventBridge"
+# test comment
