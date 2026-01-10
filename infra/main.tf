@@ -55,6 +55,7 @@ resource "aws_sns_topic_subscription" "sms_subscription" {
   endpoint  = "+447761999587" # replace with your mobile number (E.164 format)
 }
 
+
 # Lambda function IAM role
 resource "aws_iam_role" "lambda_exec" {
   name = "football-alerts-lambda-role"

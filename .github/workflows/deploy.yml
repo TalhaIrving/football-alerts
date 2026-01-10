@@ -51,12 +51,12 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: eu-west-2
         run: |
-          echo "Scanning for stale Terraform locks in DynamoDB table 'terraform-locks'..."
-          LOCK_IDS=$(aws dynamodb scan --table-name terraform-locks --query 'Items[].LockID.S' --output text || true)
+          echo "Scanning for stale Terraform locks in DynamoDB table 'terraform-lock'..."
+          LOCK_IDS=$(aws dynamodb scan --table-name terraform-lock --query 'Items[].LockID.S' --output text || true)
           if [ -n "$LOCK_IDS" ]; then
             for ID in $LOCK_IDS; do
               echo "Deleting stale lock: $ID"
-              aws dynamodb delete-item --table-name terraform-locks --key "{\"LockID\":{\"S\":\"$ID\"}}" || true
+              aws dynamodb delete-item --table-name terraform-lock --key "{\"LockID\":{\"S\":\"$ID\"}}" || true
             done
           else
             echo "No existing locks found."
