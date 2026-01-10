@@ -13,7 +13,7 @@ load_dotenv()
 API_BASE_URL = "https://v3.football.api-sports.io/fixtures"
 API_HOST = "v3.football.api-sports.io" # <--- NEW: Host header value
 
-# We use hardcoded IDs for Aston Villa (33) and Birmingham City (36)
+# We use hardcoded IDs for Aston Villa (66) and Birmingham City (54)
 TARGET_TEAM_IDS = [66, 54] 
 TIMEZONE = "Europe/London"
 
@@ -23,7 +23,7 @@ def fetch_and_filter_fixtures(api_key):
     # Get today's date in YYYY-MM-DD format as required by the 'date' parameter
     local_tz = pytz.timezone(TIMEZONE)
     #today_date = datetime.now(pytz.utc).astimezone(local_tz).strftime("%Y-%m-%d")
-    today_date = "2025-11-09"
+    today_date = "2026-18-01"
     #TODO: Remove this once we have a proper date
     
     # API-Football V3 requires BOTH the key and the host in the headers
