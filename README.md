@@ -4,7 +4,7 @@ This project provisions an automated, serverless system to deliver SMS alerts fo
 The entire infrastructure is defined and deployed using Terraform and managed via a GitHub Actions CI/CD pipeline.
 
 --------------------------------------------------------------------------------
-Features (The "Why")
+Features
 
 This system incorporates industry best practices to ensure reliability, security, and maintainability:
 
